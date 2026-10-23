@@ -1,0 +1,57 @@
+{
+  "name": "@aside/reports",
+  "version": "0.1.1",
+  "description": "Explicit text and image reports with configurable receivers and acknowledged delivery.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.9"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "prepack": "npm run build",
+    "prepare": "npm run build"
+  },
+  "peerDependencies": {
+    "react": "^18.3.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/react": "^19.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Enry6tz/reports.git"
+  },
+  "homepage": "https://github.com/Enry6tz/reports#readme",
+  "bugs": {
+    "url": "https://github.com/Enry6tz/reports/issues"
+  }
+}
