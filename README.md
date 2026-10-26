@@ -52,7 +52,12 @@ Un HTTP 2xx sin ACK válido no confirma la entrega. Consulte los estados en la [
 
 ## Instalar y conectar
 
-Este paquete es propio y todavía no está publicado en npm. `npm install @e6tz/reports` no está disponible desde el registro público.
+Instale el paquete público desde npm:
+
+```sh
+npm install @e6tz/reports
+```
+
 El código se distribuye bajo la [licencia MIT](LICENSE).
 
 Requisitos: Node.js 20.9 o posterior, npm y Git para instalar desde el repositorio.
