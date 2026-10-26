@@ -1,10 +1,13 @@
 {
-  "name": "@aside/reports",
+  "name": "@e6tz/reports",
   "version": "0.1.1",
   "description": "Explicit text and image reports with configurable receivers and acknowledged delivery.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=20.9"
   },
@@ -31,6 +34,7 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test tests/*.test.mjs",
+    "test:package": "node scripts/test-package.mjs",
     "prepack": "npm run build",
     "prepare": "npm run build"
   },

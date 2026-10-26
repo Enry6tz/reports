@@ -124,7 +124,7 @@ export function ReportForm({ client, appVersion, className, labels: overrides, o
     setError(null);
     client.cancel();
   }
-  return <form className={className} onSubmit={submit} aria-busy={busy} data-aside-reports="form">
+  return <form className={className} onSubmit={submit} aria-busy={busy} data-reports="form">
     <div>
       <label htmlFor={`${identifier}-message`}>{labels.message}</label>
       <textarea id={`${identifier}-message`} name="message" required rows={4} maxLength={reportLimits.messageBytes} disabled={locked} value={message} onChange={event => setMessage(event.currentTarget.value)} aria-describedby={`${identifier}-status`} aria-invalid={error === labels.invalidMessage || undefined} />

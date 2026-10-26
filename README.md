@@ -1,12 +1,12 @@
-# @aside/reports
+# Reports (`@e6tz/reports`)
 
 Enviá reportes de texto e imagen a un receptor configurable. Este paquete tiene su propia versión e instalación.
 El núcleo funciona en JavaScript y TypeScript sin React, Toolkit ni Performance.
 
 ## Instalar y conectar
 
-Este paquete es propio y todavía no está publicado en npm. `npm install @aside/reports` no está disponible desde el registro público.
-El código conserva la licencia `UNLICENSED`; este repositorio no concede una licencia de uso público.
+Este paquete es propio y todavía no está publicado en npm. `npm install @e6tz/reports` no está disponible desde el registro público.
+El código se distribuye bajo la [licencia MIT](LICENSE).
 
 Requisitos: Node.js 20.9 o posterior, npm y Git para instalar desde el repositorio.
 
@@ -31,19 +31,19 @@ npm pack
 En la aplicación consumidora, instalá el archivo generado:
 
 ```sh
-npm install /ruta/al/archivo/aside-reports-0.1.1.tgz
+npm install /ruta/al/archivo/e6tz-reports-0.1.1.tgz
 ```
 
-Configurá un receptor compatible. ASIDE proporciona el endpoint desde la conexión de reportes del proyecto.
+Configurá la URL de un receptor compatible con el contrato HTTP documentado abajo.
 El receptor público permite crear reportes. No uses un token administrativo en el navegador.
 
 ```ts
-import { createReportsClient, createHttpReportsTransport } from "@aside/reports";
-import { collectReportContext } from "@aside/reports/browser";
+import { createReportsClient, createHttpReportsTransport } from "@e6tz/reports";
+import { collectReportContext } from "@e6tz/reports/browser";
 
 const reports = createReportsClient({
   transport: createHttpReportsTransport({
-    endpoint: "https://aside.example/api/integrations/reports/ENDPOINT_UUID",
+    endpoint: "https://receiver.example/api/integrations/reports/ENDPOINT_UUID",
   }),
 });
 
@@ -70,7 +70,7 @@ Un conflicto HTTP 409 rechaza el intento. `retry()` no sobrescribe ese conflicto
 
 ## Usar el formulario en React o Next.js
 
-Instalá React 18.3 o 19 cuando uses el subpath `@aside/reports/react`.
+Instalá React 18.3 o 19 cuando uses el subpath `@e6tz/reports/react`.
 El formulario incluye mensaje, selección de imagen, estado, reintento y descarte.
 Usa controles HTML accesibles. No instala CSS global y hereda la apariencia de tu aplicación.
 No captura imágenes automáticamente.
@@ -82,8 +82,8 @@ También admite la repetición de efectos de React Strict Mode.
 "use client";
 
 import { useEffect, useState } from "react";
-import { createReportsClient, createHttpReportsTransport, type ReportsClient } from "@aside/reports";
-import { ReportForm } from "@aside/reports/react";
+import { createReportsClient, createHttpReportsTransport, type ReportsClient } from "@e6tz/reports";
+import { ReportForm } from "@e6tz/reports/react";
 
 export function Reportar() {
   const [client, setClient] = useState<ReportsClient | null>(null);
@@ -91,7 +91,7 @@ export function Reportar() {
   useEffect(() => {
     const reports = createReportsClient({
       transport: createHttpReportsTransport({
-        endpoint: "https://aside.example/api/integrations/reports/ENDPOINT_UUID",
+        endpoint: "https://receiver.example/api/integrations/reports/ENDPOINT_UUID",
       }),
     });
     setClient(reports);
@@ -111,7 +111,7 @@ Descartar permite editar y preparar otro intento, aunque el anterior puede haber
 ## Adjuntar una imagen elegida por la persona
 
 ```ts
-import { readReportImage } from "@aside/reports/browser";
+import { readReportImage } from "@e6tz/reports/browser";
 
 const image = await readReportImage(file);
 reports.prepare({ message: "La pantalla aparece cortada.", image });
@@ -148,7 +148,7 @@ Las respuestas tardías no actualizan un intento cancelado o una instancia desca
 ### Contrato HTTP
 
 El endpoint es una URL HTTP(S) absoluta o una ruta relativa al mismo origen.
-ASIDE usa `POST /api/integrations/reports/:endpointId` y valida el origen autorizado.
+El transporte envía `POST` a la URL configurada. El receptor debe validar el origen autorizado.
 El receptor debe deduplicar `submissionId` dentro de su ámbito y responder 409 si cambia el contenido.
 
 ```ts
@@ -191,6 +191,9 @@ El núcleo aplica timeout y descarta respuestas tardías aunque el transporte ig
 
 ## Desarrollar este paquete
 
-Desde esta carpeta, ejecutá `npm install`, `npm test` y `npm pack`.
+Desde esta carpeta, ejecutá `npm ci --ignore-scripts`, `npm run typecheck`, `npm test` y `npm run test:package`.
+La verificación de paquete instala un tarball real en consumidores temporales fuera del repositorio, sin React y con React 18.3/19; comprueba imports, tipos y entrega confirmada. Requiere acceso al registro npm y conserva las carpetas temporales que muestra para inspección y limpieza manual.
+GitHub Actions ejecuta los mismos controles en Node.js 22 y 24 para pushes y pull requests, sin publicar.
+`npm pack` genera el archivo distribuible. La configuración de publicación es pública para el scope `@e6tz`; publicar todavía requiere confirmar su titularidad y autorizar una sesión npm. Reports se distribuye bajo la [licencia MIT](LICENSE), incluida en el paquete.
 La compilación genera JavaScript ESM y declaraciones con imports `.js` compatibles con NodeNext.
 Los exports raíz y `/browser` no importan React. Cada versión se empaqueta sin depender de fuentes del monorepo.

@@ -12,6 +12,15 @@ const deferred = () => {
   const promise = new Promise(complete => { resolve = complete; });
   return { promise, resolve };
 };
+
+test("HTTP endpoint validation preserves relative and absolute receiver URLs", () => {
+  for (const endpoint of ["/reports", "/reports?project=1", "https://receiver.example/reports", "http://localhost:3000/reports"]) {
+    assert.equal(typeof createHttpReportsTransport({ endpoint }), "function");
+  }
+  for (const endpoint of ["reports", "//receiver.example/reports", "https://user:secret@receiver.example/reports", "https://receiver.example/reports#fragment", "file:///reports"]) {
+    assert.throws(() => createHttpReportsTransport({ endpoint }), { code: "INVALID_ENDPOINT" });
+  }
+});
 function clientFor(context, options) {
   const client = createReportsClient({ createId: () => submissionId, now: () => Date.parse(timestamp), ...options });
   context.after(() => client.dispose());
