@@ -3,6 +3,53 @@
 Enviá reportes de texto e imagen a un receptor configurable. Este paquete tiene su propia versión e instalación.
 El núcleo funciona en JavaScript y TypeScript sin React, Toolkit ni Performance.
 
+Reports, Flags y Toolkit son bibliotecas independientes para integrar en una aplicación anfitriona, no aplicaciones completas.
+Comparten el mismo reparto de responsabilidades, aunque sus interfaces son distintas.
+Reports no incluye cuentas, inicio de sesión, un receptor remoto ni almacenamiento de reportes.
+
+## Integrar en una aplicación anfitriona
+
+La anfitriona controla la interfaz, la activación, la autenticación, los permisos, el backend y los secretos.
+Mantenga la función desactivada por defecto en su configuración. Actívela explícitamente cuando la integración esté preparada.
+Ese interruptor pertenece a la anfitriona; no es una opción de Reports ni sustituye la autorización del servidor.
+
+1. Implemente una ruta receptora propia, por ejemplo `POST /api/reports`, con el [contrato HTTP](#contrato-http).
+2. Configure cómo autenticar las solicitudes y autorizar el proyecto y la operación en ese backend.
+3. Inyecte el transporte en el cliente. Muestre el formulario sólo cuando la configuración y los permisos lo permitan.
+4. Envíe únicamente desde una acción explícita de la persona. Ofrezca el reintento como otra acción explícita.
+5. Al cerrar sesión, perder permisos o desmontar la integración, oculte la interfaz y ejecute `dispose()` sobre el cliente que posee.
+
+Importar el paquete, construir el cliente o montar `ReportForm` no envía reportes por sí solo.
+`prepare()` valida y congela los datos; `send()` inicia la entrega y `retry()` reenvía el mismo intento preparado.
+La selección de una imagen y la recopilación de contexto también son explícitas.
+
+### Autenticación de la anfitriona
+
+**El transporte HTTP usa `credentials: "omit"`, incluso con `/api/reports` en el mismo origen.**
+Una ruta relativa no transmite automáticamente las cookies de la sesión ni convierte la solicitud en autenticada.
+La anfitriona debe proporcionar las cabeceras de autenticación mediante `headers`, o integrar su propio `fetch` o transporte.
+Si necesita cookies, configure esa decisión explícitamente en el adaptador de la anfitriona y aplique protección CSRF.
+Consulte [cómo inyectar otro transporte](#inyectar-otro-transporte) para conservar el contrato de entrega.
+
+Reports no incluye gestión de cuentas ni emisión, renovación o persistencia de credenciales.
+No incluya secretos administrativos ni credenciales de larga duración en el navegador.
+Si utiliza credenciales de alcance limitado, su emisión, vigencia y autorización corresponden a la anfitriona.
+
+### Preparar el backend receptor
+
+La ruta `/api/reports` es sólo un ejemplo: este paquete no la crea ni ofrece un servicio alojado.
+Antes de guardar un reporte, el backend de la anfitriona debe:
+
+- Autenticar la solicitud y autorizar su proyecto y operación. Derivar la identidad del contexto verificado del servidor, no del cuerpo enviado.
+- Aplicar validación de origen, CORS y CSRF según su mecanismo de autenticación. Estos controles no sustituyen los permisos.
+- Validar de nuevo el cuerpo, el texto y la imagen con los [límites del contrato](#contrato-http), y aplicar cuotas y límites de frecuencia.
+- Deduplicar atómicamente `submissionId` dentro del ámbito autorizado. Devolver 409 si el mismo identificador tiene contenido diferente.
+- Confirmar la recepción sólo después de persistir el reporte de forma duradera. Responder con `{data: Acknowledgement}` según el contrato.
+
+Un HTTP 429 puede indicar `Retry-After`; el cliente espera ese plazo y requiere otro reintento explícito.
+Un HTTP 2xx sin ACK válido no confirma la entrega. Consulte los estados en la [referencia](#referencia-de-api).
+`cancel()` y `dispose()` detienen el intento local, pero no retiran un reporte que el servidor ya recibió.
+
 ## Instalar y conectar
 
 Este paquete es propio y todavía no está publicado en npm. `npm install @e6tz/reports` no está disponible desde el registro público.
@@ -34,8 +81,8 @@ En la aplicación consumidora, instalá el archivo generado:
 npm install /ruta/al/archivo/e6tz-reports-0.1.1.tgz
 ```
 
-Configurá la URL de un receptor compatible con el contrato HTTP documentado abajo.
-El receptor público permite crear reportes. No uses un token administrativo en el navegador.
+Configure la URL de su receptor y las credenciales de la anfitriona, si corresponden, antes de habilitar la función.
+Este ejemplo no envía durante la inicialización. La anfitriona debe conectar `submitReport()` a una acción de su interfaz.
 
 ```ts
 import { createReportsClient, createHttpReportsTransport } from "@e6tz/reports";
@@ -43,17 +90,22 @@ import { collectReportContext } from "@e6tz/reports/browser";
 
 const reports = createReportsClient({
   transport: createHttpReportsTransport({
-    endpoint: "https://receiver.example/api/integrations/reports/ENDPOINT_UUID",
+    endpoint: "/api/reports",
   }),
 });
 
-reports.prepare({
-  message: "El botón Guardar no responde.",
-  context: collectReportContext({ appVersion: "1.2.0" }),
-});
-const result = await reports.send();
-if (result.status === "accepted") {
-  console.log(result.receipt.reportId);
+let reportingEnabled = false; // Host configuration; enable only after integration and permission checks.
+
+async function submitReport(message: string) {
+  if (!reportingEnabled) return;
+  reports.prepare({
+    message,
+    context: collectReportContext({ appVersion: "1.2.0" }),
+  });
+  const result = await reports.send();
+  if (result.status === "accepted") {
+    console.log(result.receipt.reportId);
+  }
 }
 ```
 
@@ -77,6 +129,9 @@ No captura imágenes automáticamente.
 
 En Next.js, creá un componente cliente. Este ejemplo crea y elimina cada instancia desde el mismo efecto.
 También admite la repetición de efectos de React Strict Mode.
+La anfitriona proporciona `enabled` tras comprobar su configuración y permisos, y `getRequestHeaders` según su autenticación.
+Mantenga estable la identidad de ese callback para no recrear el cliente en cada renderizado.
+Los permisos siempre deben comprobarse también en el backend; ocultar el formulario no protege la ruta receptora.
 
 ```tsx
 "use client";
@@ -85,20 +140,31 @@ import { useEffect, useState } from "react";
 import { createReportsClient, createHttpReportsTransport, type ReportsClient } from "@e6tz/reports";
 import { ReportForm } from "@e6tz/reports/react";
 
-export function Reportar() {
+interface ReportsPanelProps {
+  enabled?: boolean;
+  getRequestHeaders: () => HeadersInit | Promise<HeadersInit>;
+}
+
+export function ReportsPanel({ enabled = false, getRequestHeaders }: ReportsPanelProps) {
   const [client, setClient] = useState<ReportsClient | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     const reports = createReportsClient({
       transport: createHttpReportsTransport({
-        endpoint: "https://receiver.example/api/integrations/reports/ENDPOINT_UUID",
+        endpoint: "/api/reports",
+        headers: () => getRequestHeaders(),
       }),
     });
     setClient(reports);
-    return () => reports.dispose();
-  }, []);
+    return () => {
+      reports.dispose();
+      setClient(null);
+    };
+  }, [enabled, getRequestHeaders]);
 
-  if (!client) return <p role="status">Preparando formulario…</p>;
+  if (!enabled) return null;
+  if (!client) return <p role="status">Preparing report form…</p>;
   return <ReportForm client={client} appVersion="1.2.0" />;
 }
 ```
