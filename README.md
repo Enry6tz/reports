@@ -1,5 +1,9 @@
 # Reports (`@e6tz/reports`)
 
+[Sitio web](https://reports.6tz.tech) · [npm: @e6tz/reports](https://www.npmjs.com/package/@e6tz/reports) · [MIT](LICENSE)
+
+[![Vista previa de Reports](docs/images/landing-preview.jpg)](https://reports.6tz.tech)
+
 Enviá reportes de texto e imagen a un receptor configurable. Este paquete tiene su propia versión e instalación.
 El núcleo funciona en JavaScript y TypeScript sin React, Toolkit ni Performance.
 
