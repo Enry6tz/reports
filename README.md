@@ -11,6 +11,10 @@ Reports, Flags y Toolkit son bibliotecas independientes para integrar en una apl
 Comparten el mismo reparto de responsabilidades, aunque sus interfaces son distintas.
 Reports no incluye cuentas, inicio de sesión, un receptor remoto ni almacenamiento de reportes.
 
+## Documentación de backend
+
+Consulte la [guía completa de integración](docs/backend-integration.md) para implementar el receptor, la persistencia, la idempotencia y las pruebas. También está disponible en la [documentación del sitio](https://reports.6tz.tech/docs/).
+
 ## Integrar en una aplicación anfitriona
 
 La anfitriona controla la interfaz, la activación, la autenticación, los permisos, el backend y los secretos.
